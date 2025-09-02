@@ -3,6 +3,7 @@ local M = {}
 local api = vim.api
 
 M.on_attach = function(client, bufnr)
+    vim.deprecate("require('sqls').on_attach()", 'vim.lsp.config() and vim.lsp.enable()', 'for nvim 0.12.0+', 'sqls.nvim')
     client.server_capabilities.executeCommandProvider = true
     client.server_capabilities.codeActionProvider = { resolveProvider = false }
 
