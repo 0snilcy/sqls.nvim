@@ -5,7 +5,7 @@ local nvim_exec_autocmds = api.nvim_exec_autocmds
 
 local M = {}
 
----@param smods? vim.api.keyset.parse_cmd.mods
+---@param smods? vim.api.keyset.cmd.mods
 ---@return lsp.Handler
 local function make_show_results_handler(smods)
     return function(err, result, _)
@@ -29,7 +29,7 @@ end
 
 ---@param client_id integer
 ---@param command string
----@param smods? vim.api.keyset.parse_cmd.mods
+---@param smods? vim.api.keyset.cmd.mods
 ---@param range_given? boolean
 ---@param show_vertical? '-show-vertical'
 ---@param line1? integer
