@@ -1,9 +1,11 @@
 local api = vim.api
 local fn = vim.fn
+local util = vim.lsp.util
 
 local nvim_exec_autocmds = api.nvim_exec_autocmds
 
 local M = {}
+
 
 ---@param smods? vim.api.keyset.cmd.mods
 ---@return lsp.Handler
@@ -16,14 +18,47 @@ local function make_show_results_handler(smods)
         if not result then
             return
         end
-        local tempfile = fn.tempname() .. '.sqls_output'
-        local bufnr = fn.bufnr(tempfile, true)
-        api.nvim_buf_set_lines(bufnr, 0, 1, false, vim.split(result, '\n'))
-        vim.cmd.pedit({
-            args = { tempfile },
-            mods = smods or {},
-        })
+        -- local tempfile = fn.tempname() .. '.sqls_output'
+        -- local bufnr = fn.bufnr()
+        -- vim.cmd.pedit({
+        --     args = {},
+        --     mods = smods or {},
+        -- })
+
+        local width = vim.api.nvim_win_get_width(0)
+        local height = vim.api.nvim_win_get_height(0)
+        local bufnr = vim.api.nvim_create_buf(false, true)
+        local hl_borer_chars = '┌┬┐└├│'
+
+        local _lines = vim.split(result, '\n')
+        local lines = vim.tbl_filter(function(line)
+            local line_char = vim.fn.strcharpart(line, 0, 1)
+            return vim.fn.strlen(line_char) > 0 and hl_borer_chars:match(line_char)
+        end, _lines)
+        api.nvim_buf_set_lines(bufnr, 0, 1, false, lines)
         api.nvim_set_option_value('filetype', 'sqls_output', { buf = bufnr })
+
+        local winnr = vim.api.nvim_open_win(bufnr, true, {
+            relative = "editor",
+            width = width - 9,
+            height = height - 2,
+            row = 1,
+            col = 5,
+            style = "minimal",
+            border = "rounded"
+        })
+
+        vim.wo[winnr].wrap = false
+        vim.wo[winnr].sidescrolloff = 0
+
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "q", "<Cmd>q<CR>", {})
+        vim.api.nvim_buf_set_keymap(bufnr, "n", "$", "$ze", {})
+
+        local label = _lines[#_lines - 3]
+
+        if label ~= nil then
+            vim.notify(label, vim.log.levels.INFO)
+        end
     end
 end
 
