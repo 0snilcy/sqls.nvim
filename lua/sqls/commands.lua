@@ -1,109 +1,18 @@
 local api = vim.api
 local fn = vim.fn
 local util = vim.lsp.util
+local window = require('sqls.window')
 
 local nvim_exec_autocmds = api.nvim_exec_autocmds
 
 local M = {}
 
-local sqlsgroup = vim.api.nvim_create_augroup("SQLSBufferHelper", { clear = true })
-local buf_lines = {}
-local buf_windows = {}
-local win_buffers = {}
-local active_win_buf = nil
-
-local function hide_widnow()
-    local winnr = buf_windows[active_win_buf]
-
-    for key, value in pairs(buf_windows) do
-        if value == winnr then
-            buf_windows[key] = nil
-        end
-    end
-
-    if winnr ~= nil and api.nvim_win_is_valid(winnr) then
-        local ok, wins = pcall(vim.api.nvim_tabpage_list_wins, 0)
-
-        if #wins > 1 then
-            vim.schedule(function()
-                pcall(vim.api.nvim_win_close, winnr, true)
-            end)
-        else
-            pcall(vim.api.nvim_buf_delete,
-                vim.api.nvim_win_get_buf(winnr),
-                { force = true }
-            )
-        end
-    end
-
-    active_win_buf = nil
-end
-
-local function show_win()
-    local curbufnr = api.nvim_get_current_buf()
-    if active_win_buf == curbufnr then return end
-
-    hide_widnow()
-
-    local lines = buf_lines[curbufnr]
-    if lines == nil then return end
-
-    local bufnr = api.nvim_create_buf(false, true)
-
-    vim.schedule(function()
-        api.nvim_buf_set_lines(bufnr, 0, 1, false, lines)
-        api.nvim_set_option_value('filetype', 'sqls_output', { buf = bufnr })
-
-        local winnr = vim.api.nvim_open_win(bufnr, false, {
-            split = 'below',
-            win = 0
-        })
-
-        buf_windows[curbufnr] = winnr
-        win_buffers[bufnr] = true
-        active_win_buf = curbufnr
-
-        vim.wo[winnr].wrap = false
-
-        api.nvim_buf_set_keymap(bufnr, "n", "q", "<Cmd>q<CR>", {})
-        api.nvim_buf_set_keymap(bufnr, "n", "$", "$ze", {})
-
-        local label = lines[#lines - 3]
-
-        if label ~= nil then
-            api.nvim_echo({ { label } }, false, {})
-        end
-    end)
-end
-
-api.nvim_create_autocmd("BufEnter", {
-    group = sqlsgroup,
-    callback = function(args)
-        if win_buffers[args.buf] then return end
-        show_win()
-    end,
-})
-
-api.nvim_create_autocmd("WinClosed", {
-    group = sqlsgroup,
-    callback = function(args)
-        local winnr = args.match
-
-        if win_buffers[args.buf] then
-            for key, value in pairs(buf_windows) do
-                if value == tonumber(winnr) then
-                    buf_lines[key] = nil
-                end
-            end
-        end
-    end,
-})
 
 
 ---@param smods? vim.api.keyset.cmd.mods
 ---@return lsp.Handler
 local function make_show_results_handler(smods)
-    hide_widnow()
+    window.hide_results()
 
     return function(err, result, _)
         if err then
@@ -115,9 +24,8 @@ local function make_show_results_handler(smods)
         end
 
 
-        local curbufnr = api.nvim_get_current_buf()
-        buf_lines[curbufnr] = vim.split(result, '\n')
-        show_win()
+        window.set_source_lines(api.nvim_get_current_buf(), vim.split(result, '\n'))
+        window.show_results()
     end
 end
 
