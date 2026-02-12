@@ -26,6 +26,20 @@ local function is_results_win()
     return false
 end
 
+---@return boolean
+local function is_popup_win()
+    local config = api.nvim_win_get_config(api.nvim_get_current_win())
+    if config.anchor ~= nil or config.col ~= nil then return true end
+    return false
+end
+
+---@return boolean
+local function is_current_win()
+    local state = get_source_state()
+    if state and state.results_winnr ~= nil then return true end
+    return false
+end
+
 ---@param winnr number
 local function remove_state_by_results_win(winnr)
     for source_bufnr, state in pairs(source_state) do
@@ -77,7 +91,7 @@ end
 
 
 function M.show_results()
-    if is_results_win() then return end
+    if is_results_win() or is_popup_win() or is_current_win() then return end
 
     M.hide_results()
 
@@ -101,6 +115,8 @@ api.nvim_create_autocmd("WinClosed", {
 })
 
 function M.set_source_lines(bufnr, lines)
+    remove_state_by_results_win(api.nvim_get_current_win())
+    M.hide_results()
     source_state[bufnr] = { lines = lines, bufnr = bufnr }
 end
 

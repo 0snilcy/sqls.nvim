@@ -12,7 +12,7 @@ local M = {}
 ---@param smods? vim.api.keyset.cmd.mods
 ---@return lsp.Handler
 local function make_show_results_handler(smods)
-    window.hide_results()
+    -- window.hide_results()
 
     return function(err, result, _)
         if err then
