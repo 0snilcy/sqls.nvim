@@ -74,6 +74,8 @@ local function create_results()
     if not state or state.lines == nil then return end
 
     local bufnr = api.nvim_create_buf(false, true)
+    local curbufnr = api.nvim_get_current_buf()
+    local width = api.nvim_win_get_width(0)
 
     api.nvim_buf_set_lines(bufnr, 0, 1, false, state.lines)
     api.nvim_set_option_value('filetype', 'sqls_output', { buf = bufnr })
@@ -86,9 +88,8 @@ local function create_results()
     api.nvim_buf_set_keymap(bufnr, "n", "q", "<Cmd>q<CR>", {})
     api.nvim_buf_set_keymap(bufnr, "n", "$", "$ze", {})
 
-    notify(state)
+    -- notify(state)
 end
-
 
 function M.show_results()
     if is_results_win() or is_popup_win() or is_current_win() then return end
@@ -104,10 +105,10 @@ api.nvim_create_autocmd("BufEnter", {
 })
 
 
-api.nvim_create_autocmd("WinClosed", {
+api.nvim_create_autocmd("BufWipeout", {
     group = sqlsgroup,
     callback = function(args)
-        local winnr = tonumber(args.match)
+        local winnr = api.nvim_get_current_win()
         if winnr ~= nil then
             remove_state_by_results_win(winnr)
         end
